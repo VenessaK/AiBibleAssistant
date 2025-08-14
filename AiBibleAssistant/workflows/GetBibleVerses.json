@@ -1,0 +1,314 @@
+{
+  "name": "GetBibleVerses",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "emotions",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "",
+      "name": "Webhook",
+      "webhookId": ""
+    },
+    {
+      "parameters": {
+        "model": "z-ai/glm-4.5-air:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        432
+      ]
+     
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$json[\"output\"]}}",
+        "options": {
+          "systemMessage": "You are a Bible scholar. Given the topic(s), look up up to 3 relevant scripture references (book + chapter:verse) and provide the short verse text (or paraphrase if necessary) plus a one-line reason why it applies. Return a compact format, one verse per line, and include the verse reference clearly. If you cannot find a precise verse, produce a short comforting message (2–3 sentences) and include a note \"No exact verse found—here's related encouragement.\"\n\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        0
+      ],
+      "id": "",
+      "name": "Verse Finder"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$json[\"body\"][\"text\"]}}\n",
+        "options": {
+          "systemMessage": "You are an empathetic listener. From the user's short text, identify the primary emotion (one word) and up to two secondary emotions. Return a short JSON-like plain answer: \"emotion: <emotion>, secondary: <comma-separated>, short_summary: <one sentence>\". Be concise and avoid scripture or advice at this stage.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "",
+      "name": "Emotion Analyzer"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "",
+              "name": "response",
+              "value": "={{$json[\"output\"]}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2600,
+        20
+      ],
+      "id": "",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$json[\"output\"]}}\n\n",
+        "options": {
+          "systemMessage": "You are a kind, calm spiritual companion writing a short, human-sounding encouragement (3–6 sentences). Use simple language, gentle tone. Include the top verse references inline (briefly) and one practical next step (short). Format the final output as plain text, with short paragraphs or bullet points (not one long paragraph). \n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        2128,
+        0
+      ],
+      "id": "",
+      "name": "Final Response"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        560,
+        0
+      ],
+      "id": "",
+      "name": "Wait",
+      "webhookId": ""
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1312,
+        0
+      ],
+      "id": "",
+      "name": "Wait1",
+      "webhookId": ""
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1904,
+        0
+      ],
+      "id": "",
+      "name": "Wait2",
+      "webhookId": ""
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$json[\"output\"]}}\n\n",
+        "options": {
+          "systemMessage": "You are a biblical counselor. Based on the emotion input, map to 1–3 biblical topics (single-word or short phrases): e.g., \"anxiety\", \"peace\", \"trust\", \"comfort\", \"forgiveness\". Return them as a short, comma-separated list and one-line rationale for each.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        848,
+        0
+      ],
+      "id": "",
+      "name": "Topic Mapper"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200,
+          "responseKey": ""
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.3,
+      "position": [
+        2832,
+        32
+      ],
+      "id": "",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Emotion Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Emotion Analyzer",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Topic Mapper",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Verse Finder",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Final Response",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emotion Analyzer": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verse Finder": {
+      "main": [
+        [
+          {
+            "node": "Wait2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final Response": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Topic Mapper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Verse Finder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait2": {
+      "main": [
+        [
+          {
+            "node": "Final Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Topic Mapper": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "",
+ 
+  "id": "",
+  "tags": []
+}
